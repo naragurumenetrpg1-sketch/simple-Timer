@@ -347,7 +347,7 @@
   <div class="layout">
 
     <div class="col col-presets">
-      <button class="preset" data-min="25">25分</button>
+      <button class="preset active" data-min="25">25分</button>
       <button class="preset" data-min="5">5分</button>
       <button class="preset" data-min="3">3分</button>
       <button class="preset" data-min="1">1分</button>
@@ -360,7 +360,7 @@
           <circle class="ring-track" cx="160" cy="160" r="148"></circle>
           <circle id="ringProgress" class="ring-progress" cx="160" cy="160" r="148"></circle>
         </svg>
-        <div id="display">05:00</div>
+        <div id="display">25:00</div>
       </div>
       <div id="status">分・秒を入力して「開始」を押してください</div>
     </div>
@@ -369,7 +369,7 @@
       <div class="inputs">
         <div class="field">
           <label>分</label>
-          <input type="number" id="minutes" value="5" min="0" max="999">
+          <input type="number" id="minutes" value="25" min="0" max="999">
         </div>
         <div class="field">
           <label>秒</label>
@@ -442,14 +442,28 @@ presetBtns.forEach(btn => {
 });
 
 // 手動入力したらプリセットの選択状態を解除
+// また、プリセット選択によってタイマーが動作中だった場合はここで止めておく。
+// こうしないと「開始」を押したときに timerId が残っていて無視されてしまい、
+// リセットしないと手入力の時間が反映されない、という問題が起きる。
 [minutesInput, secondsInput].forEach(input => {
   input.addEventListener('input', () => {
     presetBtns.forEach(b => b.classList.remove('active'));
+
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    isPaused = false;
   });
 });
 
 ring.style.strokeDasharray = `${CIRC}`;
 ring.style.strokeDashoffset = `0`;
+
+// 初期値(分・秒の入力欄の値)を反映しておく。これがないと起動直後の表示が
+// 00:00 になってしまい、入力欄のデフォルト値(25分)と表示がズレてしまう。
+totalSeconds = (parseInt(minutesInput.value, 10) || 0) * 60 + (parseInt(secondsInput.value, 10) || 0);
+remaining = totalSeconds;
 
 function formatTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, '0');
