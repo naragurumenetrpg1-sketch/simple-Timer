@@ -340,6 +340,50 @@
     .ring-progress { transition: none; }
     #display.pulse { animation: none; }
   }
+
+  /* --- ここから追加: 終了時のポップアップ --- */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  .popup-overlay.show {
+    display: flex;
+  }
+
+  .popup-box {
+    background: var(--bg-soft);
+    border: 1px solid var(--teal);
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(61, 220, 151, 0.35);
+    animation: popIn 0.25s ease;
+    max-width: 80vw;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .popup-box p {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    margin: 0 0 1.4rem;
+    color: var(--teal);
+  }
+
+  .popup-box button {
+    background: var(--teal);
+    color: #06231a;
+  }
+  /* --- 追加ここまで --- */
 </style>
 </head>
 <body>
@@ -385,6 +429,14 @@
 
   </div>
 
+  <!-- 追加: 終了時のポップアップ -->
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup-box">
+      <p>⏰ 時間がきたよ！</p>
+      <button id="popupCloseBtn">閉じる</button>
+    </div>
+  </div>
+
 <script>
 const CIRC = 2 * Math.PI * 148;
 
@@ -402,6 +454,23 @@ const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
 const ring = document.getElementById('ringProgress');
 const presetBtns = document.querySelectorAll('.preset');
+
+// 追加: ポップアップ関連の要素と関数
+const popupOverlay = document.getElementById('popupOverlay');
+const popupCloseBtn = document.getElementById('popupCloseBtn');
+
+function showPopup() {
+  popupOverlay.classList.add('show');
+}
+
+function hidePopup() {
+  popupOverlay.classList.remove('show');
+}
+
+popupCloseBtn.addEventListener('click', hidePopup);
+popupOverlay.addEventListener('click', (e) => {
+  if (e.target === popupOverlay) hidePopup();
+});
 
 // スマホ(特にiOS Safari)は「ユーザー操作の直後」に作られた音声出口以外は鳴らないことが多いので、
 // AudioContextはここで1つだけ作り、ボタン操作のタイミングで起動(resume)しておく
@@ -431,6 +500,7 @@ presetBtns.forEach(btn => {
     secondsInput.value = 0;
     ring.classList.remove('done');
     display.classList.remove('pulse');
+    hidePopup();
 
     totalSeconds = parseInt(btn.dataset.min, 10) * 60;
     remaining = totalSeconds;
@@ -522,6 +592,7 @@ function finish() {
   ring.classList.add('done');
   display.classList.add('pulse');
   playBeep();
+  showPopup(); // 追加: 終了時に画面中央へポップアップを表示
 }
 
 function tick() {
@@ -545,6 +616,7 @@ startBtn.addEventListener('click', () => {
     remaining = totalSeconds;
     ring.classList.remove('done');
     display.classList.remove('pulse');
+    hidePopup();
   }
 
   if (remaining <= 0) {
@@ -575,6 +647,7 @@ resetBtn.addEventListener('click', () => {
   totalSeconds = 0;
   ring.classList.remove('done');
   display.classList.remove('pulse');
+  hidePopup();
   ring.style.strokeDashoffset = '0';
   display.textContent = '00:00';
   status.textContent = '分・秒を入力して「開始」を押してください';
