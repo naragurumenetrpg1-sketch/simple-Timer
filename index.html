@@ -21,6 +21,13 @@
     --text: #eef1f6;
     --text-dim: #6b7280;
     --ring-track: #1c2230;
+    --amber-glow: rgba(255, 159, 69, 0.5);
+  }
+
+  /* 追加: 画面の色「白」(背景はそのまま、オレンジの部分だけ白にする) */
+  :root[data-accent="white"] {
+    --amber: #f2f4f8;
+    --amber-glow: rgba(255, 255, 255, 0.4);
   }
 
   * { box-sizing: border-box; }
@@ -110,7 +117,7 @@
     stroke-width: 6;
     stroke-linecap: round;
     transition: stroke-dashoffset 1s linear, stroke 0.4s ease;
-    filter: drop-shadow(0 0 6px rgba(255, 159, 69, 0.5));
+    filter: drop-shadow(0 0 6px var(--amber-glow));
   }
 
   .ring-progress.done {
@@ -253,13 +260,13 @@
     color: #1a1206;
   }
 
-  #pauseBtn, #resetBtn {
+  #pauseBtn, #resetBtn, #barOpenBtn {
     background: transparent;
     color: var(--text-dim);
     border: 1px solid #232a3a;
   }
 
-  #pauseBtn:hover, #resetBtn:hover {
+  #pauseBtn:hover, #resetBtn:hover, #barOpenBtn:hover {
     color: var(--text);
     border-color: #3a4256;
   }
@@ -340,6 +347,211 @@
     .ring-progress { transition: none; }
     #display.pulse { animation: none; }
   }
+
+  /* --- 追加: バータイマー画面 --- */
+  .bar-view {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    justify-content: flex-end;
+    align-items: flex-end;
+    background: var(--bg);
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  .bar-view.show { display: flex; }
+
+  .bar-main { width: 100%; max-width: 880px; padding: 32px 40px 24px; }
+
+  .bar-head {
+    display: flex;
+    justify-content: flex-end;
+    align-items: stretch;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .bar-time {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(72px, 10vw, 160px);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .bar-time.done { color: var(--teal); }
+
+  .bar-track {
+    height: clamp(72px, 16vh, 160px);
+    background: var(--ring-track);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  /* バーは右から左へ進む */
+  .bar-fill {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 0%;
+    background: var(--amber);
+    transition: background-color 0.6s;
+  }
+  .bar-ticks { position: absolute; inset: 0; display: flex; pointer-events: none; }
+  .bar-ticks i { flex: 1; border-right: 1px solid var(--bg); }
+  .bar-ticks i.m5 { border-right-width: 3px; }
+  .bar-ticks i:last-child { border-right: 0; }
+  .bar-track.flash .bar-fill { animation: barFlash 0.5s steps(2) infinite; }
+  @keyframes barFlash { 50% { opacity: 0.25; } }
+
+  #barMainBtn {
+    flex: 0 0 auto;
+    width: clamp(40px, 5vw, 72px);
+    padding: 0;
+    border-radius: 8px;
+    background: var(--amber);
+    color: #1a1206;
+  }
+  #barMainBtn.stop { background: var(--teal); color: #06231a; }
+  #barMainBtn:focus-visible, #barBackBtn:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+
+  #barBackBtn {
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: 16px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid #232a3a;
+  }
+  #barBackBtn:hover { color: var(--text); border-color: #3a4256; }
+
+  /* 猫と足跡 */
+  .bar-lane { position: relative; height: 46px; margin-top: 4px; --r: 1; pointer-events: none; }
+  .bar-cat {
+    position: absolute;
+    bottom: 0;
+    width: 76px;
+    left: calc((100% - 76px) * var(--r));
+    transition: left 0.2s linear;
+  }
+  .bar-cat svg { display: block; overflow: visible; animation: barBob 0.35s ease-in-out infinite; animation-play-state: paused; }
+  @keyframes barBob { 50% { transform: translateY(-1.5px); } }
+  .bar-cat .o { stroke: #8a93a6; stroke-width: 2; stroke-linejoin: round; }
+  .bar-cat .w { fill: #fff; }
+  .bar-cat .far { fill: #cfd5df; }
+  .bar-cat .tl-o { fill: none; stroke: #8a93a6; stroke-width: 8; stroke-linecap: round; }
+  .bar-cat .tl { fill: none; stroke: #fff; stroke-width: 4.5; stroke-linecap: round; }
+  .bar-cat .leg {
+    transform-box: fill-box;
+    transform-origin: 50% 0;
+    animation: barStepA 0.7s ease-in-out infinite alternate;
+    animation-play-state: paused;
+  }
+  .bar-cat .leg.b { animation-name: barStepB; }
+  @keyframes barStepA { from { transform: rotate(-26deg); } to { transform: rotate(26deg); } }
+  @keyframes barStepB { from { transform: rotate(26deg); } to { transform: rotate(-26deg); } }
+  .bar-cat .tail {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    animation: barSway 1.4s ease-in-out infinite alternate;
+    animation-play-state: paused;
+  }
+  @keyframes barSway { from { transform: rotate(-5deg); } to { transform: rotate(7deg); } }
+  .bar-view.running .bar-cat svg,
+  .bar-view.running .bar-cat .leg,
+  .bar-view.running .bar-cat .tail { animation-play-state: running; }
+
+  .bar-paw {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    color: var(--text-dim);
+    opacity: 0.4;
+    animation: barPawIn 0.4s ease-out;
+  }
+  .bar-paw svg { display: block; width: 100%; height: 100%; fill: currentColor; transform: rotate(-90deg); }
+  @keyframes barPawIn { from { opacity: 0; } to { opacity: 0.4; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar-fill { transition: none; }
+    .bar-cat { transition: none; }
+    .bar-track.flash .bar-fill,
+    .bar-cat svg, .bar-cat .leg, .bar-cat .tail, .bar-paw { animation: none; }
+  }
+  /* --- 追加ここまで(バータイマー) --- */
+
+  /* --- 追加: 右上メニュー(画面の色) --- */
+  #menuBtn {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    z-index: 300;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-soft);
+    color: var(--text-dim);
+    border: 1px solid #232a3a;
+  }
+  #menuBtn:hover { color: var(--text); border-color: #3a4256; }
+  #menuBtn:focus-visible, .swatch:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+  #menuBtn svg { width: 18px; height: 18px; display: block; }
+
+  #menuPanel {
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    z-index: 300;
+    min-width: 180px;
+    padding: 0.9rem;
+    background: var(--bg-soft);
+    border: 1px solid #232a3a;
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  }
+  #menuPanel[hidden] { display: none; }
+
+  .menu-title {
+    margin: 0 0 0.7rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.8rem;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid #232a3a;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: left;
+  }
+  .swatch + .swatch { margin-top: 0.5rem; }
+  .swatch:hover { color: var(--text); }
+  .swatch[aria-pressed="true"] { color: var(--text); border-color: var(--amber); }
+  .swatch i {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+  .menu-title.sub { margin-top: 1rem; }
+
+  /* 猫なし: バータイマー画面の猫と足跡(レーンごと)を隠す */
+  :root[data-cat="off"] .bar-lane { display: none; }
+  /* --- 追加ここまで(メニュー) --- */
 
   /* --- ここから追加: 終了時のポップアップ --- */
   .popup-overlay {
@@ -425,8 +637,41 @@
         <button id="pauseBtn">一時停止</button>
         <button id="resetBtn">リセット</button>
       </div>
+      <button id="barOpenBtn" type="button">バータイマー</button>
     </div>
 
+  </div>
+
+  <!-- 追加: バータイマー画面 -->
+  <div class="bar-view" id="barView" role="dialog" aria-label="バータイマー">
+    <button id="barBackBtn" type="button">← 戻る</button>
+    <div class="bar-main">
+      <div class="bar-head">
+        <div class="bar-time" id="barTime">25:00</div>
+        <button id="barMainBtn" type="button" aria-label="スタート"></button>
+      </div>
+      <div class="bar-track" id="barTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="bar-fill" id="barFill"></div>
+        <div class="bar-ticks" id="barTicks"></div>
+      </div>
+      <div class="bar-lane" id="barLane" aria-hidden="true">
+        <div class="bar-cat" id="barCat">
+          <svg viewBox="0 0 124 72" width="76" height="44">
+            <g transform="translate(124,0) scale(-1,1)">
+              <g transform="translate(40,44)"><g class="leg b"><rect class="o far" x="-4" y="0" width="8" height="24" rx="2"/></g></g>
+              <g transform="translate(84,44)"><g class="leg a"><rect class="o far" x="-4" y="0" width="8" height="24" rx="2"/></g></g>
+              <g class="tail"><path class="tl-o" d="M26 30 L8 12"/><path class="tl" d="M26 30 L8 12"/></g>
+              <rect class="o w" x="24" y="22" width="72" height="30" rx="5"/>
+              <g transform="translate(34,46)"><g class="leg a"><rect class="o w" x="-4" y="0" width="8" height="24" rx="2"/></g></g>
+              <g transform="translate(80,46)"><g class="leg b"><rect class="o w" x="-4" y="0" width="8" height="24" rx="2"/></g></g>
+              <polygon class="o w" points="94,12 97,0 105,12"/>
+              <polygon class="o w" points="108,12 116,0 120,14"/>
+              <rect class="o w" x="90" y="8" width="32" height="26" rx="5"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 追加: 終了時のポップアップ -->
@@ -435,6 +680,19 @@
       <p>⏰ 時間がきたよ！</p>
       <button id="popupCloseBtn">閉じる</button>
     </div>
+  </div>
+
+<!-- 追加: 右上メニュー -->
+  <button id="menuBtn" type="button" aria-label="メニュー" aria-haspopup="true" aria-expanded="false" aria-controls="menuPanel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div id="menuPanel" role="group" aria-label="表示設定" hidden>
+    <p class="menu-title">画面の色</p>
+    <button class="swatch" type="button" data-accent="orange" aria-pressed="true"><i style="background:#ff9f45"></i>オレンジ</button>
+    <button class="swatch" type="button" data-accent="white" aria-pressed="false"><i style="background:#f2f4f8"></i>白</button>
+    <p class="menu-title sub">猫(バータイマー)</p>
+    <button class="swatch" type="button" data-cat="on" aria-pressed="true">あり</button>
+    <button class="swatch" type="button" data-cat="off" aria-pressed="false">なし</button>
   </div>
 
 <script>
@@ -654,6 +912,230 @@ resetBtn.addEventListener('click', () => {
 });
 
 updateDisplay();
+
+// ===== 追加: バータイマー画面 =====
+// 分・秒の入力欄に入っている時間(0なら25分)でバータイマーを開く。
+// バーは右から左へ進み、猫が同じ向きに歩いて足跡を残す。
+(function () {
+  const view = document.getElementById('barView');
+  const layout = document.querySelector('.layout');
+  const openBtn = document.getElementById('barOpenBtn');
+  const backBtn = document.getElementById('barBackBtn');
+  const timeEl = document.getElementById('barTime');
+  const fillEl = document.getElementById('barFill');
+  const trackEl = document.getElementById('barTrack');
+  const ticksEl = document.getElementById('barTicks');
+  const mainBtn = document.getElementById('barMainBtn');
+  const lane = document.getElementById('barLane');
+  const catEl = document.getElementById('barCat');
+
+  const PAWS = 28; // 足跡の数(全体で)
+  const PAW_SVG = '<svg viewBox="0 0 12 12" aria-hidden="true"><ellipse cx="6" cy="8.3" rx="3.3" ry="2.7"/><circle cx="2.2" cy="5" r="1.5"/><circle cx="4.6" cy="2.6" r="1.5"/><circle cx="7.4" cy="2.6" r="1.5"/><circle cx="9.8" cy="5" r="1.5"/></svg>';
+
+  let total = 0;          // ms
+  let remaining = 0;      // ms
+  let endAt = 0;
+  let state = 'idle';     // idle / running / paused / done
+  let timer = null, alarmTimer = null, alarmStop = null;
+  let paws = [];
+
+  function fmt(ms) {
+    const s = Math.ceil(ms / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+    const p = n => String(n).padStart(2, '0');
+    return h > 0 ? `${h}:${p(m)}:${p(x)}` : `${p(m)}:${p(x)}`;
+  }
+
+  function buildTicks() {
+    ticksEl.innerHTML = '';
+    const sec = total / 1000;
+    const unit = sec <= 300 ? 10 : sec <= 3600 ? 60 : 300;       // 目盛り1本ぶんの秒数
+    const emph = unit === 10 ? 6 : unit === 60 ? 5 : 12;          // 太い目盛りの間隔
+    const n = Math.min(120, Math.max(1, Math.round(sec / unit)));
+    for (let i = 1; i <= n; i++) {
+      const t = document.createElement('i');
+      if (i % emph === 0) t.className = 'm5';
+      ticksEl.appendChild(t);
+    }
+  }
+
+  function syncPaws(n) {
+    while (paws.length > n) paws.pop().remove();
+    while (paws.length < n) {
+      const i = paws.length + 1;
+      const el = document.createElement('i');
+      el.className = 'bar-paw';
+      el.style.left = `calc((100% - 76px) * ${1 - i / PAWS} + 32px)`;
+      el.style.bottom = i % 2 ? '0px' : '10px';
+      el.innerHTML = PAW_SVG;
+      lane.insertBefore(el, catEl);
+      paws.push(el);
+    }
+  }
+
+  function render() {
+    const r = remaining / total;
+    const pct = Math.min(100, (1 - r) * 100);
+    timeEl.textContent = fmt(remaining);
+    timeEl.classList.toggle('done', state === 'done');
+    view.classList.toggle('running', state === 'running');
+    fillEl.style.width = pct + '%';
+    fillEl.style.background = state === 'done' ? 'var(--teal)' : r <= 0.05 ? '#ff5d5d' : r <= 0.2 ? '#ff7a45' : 'var(--amber)';
+    trackEl.setAttribute('aria-valuenow', Math.round(pct));
+    lane.style.setProperty('--r', r);
+    syncPaws(state === 'idle' ? 0 : Math.floor((1 - r) * PAWS));
+    mainBtn.setAttribute('aria-label', { idle: 'スタート', running: '一時停止', paused: '再開', done: 'アラームを止める' }[state]);
+    mainBtn.classList.toggle('stop', state === 'done');
+  }
+
+  function tick() {
+    remaining = Math.max(0, endAt - Date.now());
+    if (remaining <= 0) { finish(); return; }
+    render();
+  }
+
+  function start() {
+    ensureAudioUnlocked();
+    if (state === 'idle') remaining = total;
+    endAt = Date.now() + remaining;
+    state = 'running';
+    clearInterval(timer);
+    timer = setInterval(tick, 200);
+    render();
+  }
+
+  function pause() {
+    remaining = Math.max(0, endAt - Date.now());
+    clearInterval(timer);
+    state = 'paused';
+    render();
+  }
+
+  function startAlarm() {
+    playBeep();
+    clearInterval(alarmTimer);
+    alarmTimer = setInterval(playBeep, 6000);
+    clearTimeout(alarmStop);
+    alarmStop = setTimeout(stopAlarm, 120000);
+  }
+
+  function stopAlarm() {
+    clearInterval(alarmTimer);
+    clearTimeout(alarmStop);
+    trackEl.classList.remove('flash');
+  }
+
+  function finish() {
+    clearInterval(timer);
+    remaining = 0;
+    state = 'done';
+    trackEl.classList.add('flash');
+    startAlarm();
+    render();
+  }
+
+  mainBtn.addEventListener('click', () => {
+    if (state === 'idle' || state === 'paused') start();
+    else if (state === 'running') pause();
+    else { stopAlarm(); state = 'idle'; remaining = total; render(); }
+  });
+
+  function open() {
+    ensureAudioUnlocked();
+    if (timerId) pauseBtn.click(); // リング側が動いていたら止めておく
+    const m = parseInt(minutesInput.value, 10) || 0;
+    const s = parseInt(secondsInput.value, 10) || 0;
+    total = ((m * 60 + s) || 25 * 60) * 1000;
+    remaining = total;
+    state = 'idle';
+    buildTicks();
+    view.classList.add('show');
+    layout.inert = true;
+    render();
+    mainBtn.focus();
+  }
+
+  function close() {
+    clearInterval(timer);
+    stopAlarm();
+    state = 'idle';
+    view.classList.remove('show', 'running');
+    layout.inert = false;
+    openBtn.focus();
+  }
+
+  openBtn.addEventListener('click', open);
+  backBtn.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && view.classList.contains('show')) close();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (state === 'running') tick();
+  });
+})();
+
+// ===== 追加: 右上メニュー(画面の色) =====
+(function () {
+  const menuBtn = document.getElementById('menuBtn');
+  const panel = document.getElementById('menuPanel');
+  const swatches = panel.querySelectorAll('[data-accent]');
+  const KEY = 'focusTimerAccent';
+
+  function applyAccent(name) {
+    if (name === 'white') document.documentElement.setAttribute('data-accent', 'white');
+    else document.documentElement.removeAttribute('data-accent');
+    swatches.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.accent === name)));
+  }
+
+  function setMenu(open) {
+    panel.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+  }
+
+  let saved = 'orange';
+  try { saved = localStorage.getItem(KEY) === 'white' ? 'white' : 'orange'; } catch (e) {}
+  applyAccent(saved);
+
+  swatches.forEach(b => b.addEventListener('click', () => {
+    applyAccent(b.dataset.accent);
+    try { localStorage.setItem(KEY, b.dataset.accent); } catch (e) {}
+  }));
+
+  // 猫の有無(バータイマー画面の猫と足跡)
+  const catBtns = panel.querySelectorAll('[data-cat]');
+  const CAT_KEY = 'focusTimerCat';
+
+  function applyCat(v) {
+    if (v === 'off') document.documentElement.setAttribute('data-cat', 'off');
+    else document.documentElement.removeAttribute('data-cat');
+    catBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cat === v)));
+  }
+
+  let savedCat = 'on';
+  try { savedCat = localStorage.getItem(CAT_KEY) === 'off' ? 'off' : 'on'; } catch (e) {}
+  applyCat(savedCat);
+
+  catBtns.forEach(b => b.addEventListener('click', () => {
+    applyCat(b.dataset.cat);
+    try { localStorage.setItem(CAT_KEY, b.dataset.cat); } catch (e) {}
+  }));
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setMenu(panel.hidden);
+  });
+  document.addEventListener('click', (e) => {
+    if (!panel.hidden && !panel.contains(e.target)) setMenu(false);
+  });
+  // メニューを開いているときのEscはメニューだけ閉じる(バー画面は閉じない)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) {
+      e.stopPropagation();
+      setMenu(false);
+      menuBtn.focus();
+    }
+  }, true);
+})();
 </script>
 
 </body>
