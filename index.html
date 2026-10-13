@@ -501,6 +501,17 @@
   #menuBtn:hover { color: var(--text); border-color: #3a4256; }
   #menuBtn:focus-visible, .swatch:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
   #menuBtn svg { width: 18px; height: 18px; display: block; }
+  /* 10秒間タップがないとメニューボタンを隠す(タップで再表示) */
+  #menuBtn { transition: opacity 0.4s ease; }
+  #menuBtn.faded {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #menuBtn, #menuBtn.faded { transition: none; }
+  }
 
   #menuPanel {
     position: fixed;
@@ -1090,6 +1101,7 @@ updateDisplay();
   function setMenu(open) {
     panel.hidden = !open;
     menuBtn.setAttribute('aria-expanded', String(open));
+    showMenuBtn();
   }
 
   let saved = 'orange';
@@ -1119,6 +1131,23 @@ updateDisplay();
     applyCat(b.dataset.cat);
     try { localStorage.setItem(CAT_KEY, b.dataset.cat); } catch (e) {}
   }));
+
+  // 10秒間タップ(や操作)がなかったらメニューボタンを隠す。画面をタップすると再表示。
+  // メニューを開いている間は隠さない。
+  const HIDE_MS = 10000;
+  let hideTimer = null;
+
+  function showMenuBtn() {
+    menuBtn.classList.remove('faded');
+    clearTimeout(hideTimer);
+    if (panel.hidden) {
+      hideTimer = setTimeout(() => menuBtn.classList.add('faded'), HIDE_MS);
+    }
+  }
+
+  document.addEventListener('pointerdown', showMenuBtn, true);
+  document.addEventListener('keydown', showMenuBtn, true);
+  showMenuBtn();
 
   menuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
