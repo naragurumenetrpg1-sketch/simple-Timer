@@ -26,8 +26,8 @@
 
   /* 追加: 画面の色「白」(背景はそのまま、オレンジの部分だけ白にする) */
   :root[data-accent="white"] {
-    --amber: #f2f4f8;
-    --amber-glow: rgba(255, 255, 255, 0.4);
+    --amber: #e0e4ea;
+    --amber-glow: rgba(255, 255, 255, 0.3);
   }
 
   * { box-sizing: border-box; }
@@ -199,7 +199,7 @@
   }
 
   .preset {
-    padding: 0.35rem 0.8rem;
+    padding: 0.25rem 0.8rem;
     border-radius: 999px;
     border: 1px solid #232a3a;
     background: var(--bg-soft);
@@ -241,7 +241,7 @@
   }
 
   button {
-    padding: 0.5rem 1.2rem;
+    padding: 0.3rem 1.2rem;
     border: none;
     border-radius: 999px;
     font-family: 'Inter', sans-serif;
@@ -323,7 +323,7 @@
 
     .col-presets button,
     .col-right button {
-      padding: 0.6rem 1.2rem;
+      padding: 0.4rem 1.2rem;
       font-size: 0.85rem;
     }
 
@@ -560,6 +560,9 @@
   }
   .menu-title.sub { margin-top: 1rem; }
 
+  /* ステータス文が空のときは場所も取らない */
+  #status:empty { display: none; }
+
   /* 猫なし: バータイマー画面の猫と足跡(レーンごと)を隠す */
   :root[data-cat="off"] .bar-lane { display: none; }
   /* --- 追加ここまで(メニュー) --- */
@@ -629,7 +632,7 @@
         </svg>
         <div id="display">25:00</div>
       </div>
-      <div id="status">分・秒を入力して「開始」を押してください</div>
+      <div id="status"></div>
     </div>
 
     <div class="col col-right">
@@ -700,7 +703,7 @@
   <div id="menuPanel" role="group" aria-label="表示設定" hidden>
     <p class="menu-title">画面の色</p>
     <button class="swatch" type="button" data-accent="orange" aria-pressed="true"><i style="background:#ff9f45"></i>オレンジ</button>
-    <button class="swatch" type="button" data-accent="white" aria-pressed="false"><i style="background:#f2f4f8"></i>白</button>
+    <button class="swatch" type="button" data-accent="white" aria-pressed="false"><i style="background:#e0e4ea"></i>白</button>
     <p class="menu-title sub">猫(バータイマー)</p>
     <button class="swatch" type="button" data-cat="on" aria-pressed="true">あり</button>
     <button class="swatch" type="button" data-cat="off" aria-pressed="false">なし</button>
@@ -960,7 +963,7 @@ resetBtn.addEventListener('click', () => {
   hidePopup();
   ring.style.strokeDashoffset = '0';
   display.textContent = '00:00';
-  status.textContent = '分・秒を入力して「開始」を押してください';
+  status.textContent = '';
 });
 
 updateDisplay();
