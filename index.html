@@ -501,7 +501,7 @@
   #menuBtn:hover { color: var(--text); border-color: #3a4256; }
   #menuBtn:focus-visible, .swatch:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
   #menuBtn svg { width: 18px; height: 18px; display: block; }
-  /* 10秒間タップがないとメニューボタンを隠す(タップで再表示) */
+  /* 5秒間タップがないとメニューボタンを隠す(タップで再表示) */
   #menuBtn { transition: opacity 0.4s ease; }
   #menuBtn.faded {
     opacity: 0;
@@ -572,7 +572,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 250;
   }
 
   .popup-overlay.show {
@@ -947,7 +947,7 @@ updateDisplay();
   let remaining = 0;      // ms
   let endAt = 0;
   let state = 'idle';     // idle / running / paused / done
-  let timer = null, alarmTimer = null, alarmStop = null;
+  let timer = null, alarmTimer = null, alarmStop = null, endTimer = null;
   let paws = [];
 
   function fmt(ms) {
@@ -1000,6 +1000,7 @@ updateDisplay();
   }
 
   function tick() {
+    if (state !== 'running') return;
     remaining = Math.max(0, endAt - Date.now());
     if (remaining <= 0) { finish(); return; }
     render();
@@ -1012,12 +1013,16 @@ updateDisplay();
     state = 'running';
     clearInterval(timer);
     timer = setInterval(tick, 200);
+    // 別タブにいてもぴったり終わるように、終了時刻にも1回だけタイマーを仕掛けておく
+    clearTimeout(endTimer);
+    endTimer = setTimeout(tick, remaining + 20);
     render();
   }
 
   function pause() {
     remaining = Math.max(0, endAt - Date.now());
     clearInterval(timer);
+    clearTimeout(endTimer);
     state = 'paused';
     render();
   }
@@ -1036,19 +1041,106 @@ updateDisplay();
     trackEl.classList.remove('flash');
   }
 
+  // 「25分」「1分30秒」のような表記にする
+  function durationText(ms) {
+    const sec = Math.round(ms / 1000);
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return (m ? `${m}分` : '') + (s || !m ? `${s}秒` : '');
+  }
+
+  // 新しいウィンドウに出す中身
+  function alertHtml() {
+    return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>時間がきたよ！</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@500;600&display=swap" rel="stylesheet">
+<style>
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0b0e14;color:#3ddc97;text-align:center;font-family:'Inter',sans-serif}
+.t{margin:0 0 .5rem;font-family:'Space Grotesk',sans-serif;font-size:1.7rem;font-weight:700}
+.s{margin:0 0 1.2rem;color:#6b7280;font-size:.95rem}
+button{padding:.7rem 1.8rem;border:0;border-radius:999px;background:#3ddc97;color:#06231a;font:600 .95rem 'Inter',sans-serif;cursor:pointer}
+</style></head><body>
+<p class="t">⏰ 時間がきたよ！</p>
+<p class="s">${durationText(total)}が経過しました</p>
+<button onclick="window.close()">閉じる</button>
+</body></html>`;
+  }
+
+  // 時間が来たら、パソコンの画面に新しいウィンドウを開く。
+  // ブラウザにブロックされて開けなかったら false を返す。
+  let alertWin = null, alertWatch = null;
+
+  function openAlertWindow() {
+    const W = 380, H = 240;
+    // ブラウザのウィンドウではなく、ディスプレイ(作業領域)の中央に置く
+    const scr = window.screen;
+    const sx = scr.availLeft ?? scr.left ?? 0;
+    const sy = scr.availTop ?? scr.top ?? 0;
+    const sw = scr.availWidth || scr.width;
+    const sh = scr.availHeight || scr.height;
+    const left = Math.round(sx + (sw - W) / 2);
+    const top = Math.round(sy + (sh - H) / 2);
+    let w = null;
+    try {
+      w = window.open('', 'focusTimerAlert', `popup=yes,width=${W},height=${H},left=${left},top=${top}`);
+    } catch (e) {}
+    if (!w || w.closed) return false;
+    try {
+      w.document.open();
+      w.document.write(alertHtml());
+      w.document.close();
+      w.focus();
+    } catch (e) { return false; }
+    alertWin = w;
+    clearInterval(alertWatch);
+    alertWatch = setInterval(() => {
+      if (!alertWin || alertWin.closed) {
+        clearInterval(alertWatch);
+        alertWin = null;
+        if (state === 'done') stopAlarm(); // ウィンドウを閉じたらアラームと点滅も止める
+      }
+    }, 500);
+    return true;
+  }
+
+  function closeAlertWindow() {
+    clearInterval(alertWatch);
+    if (alertWin && !alertWin.closed) alertWin.close();
+    alertWin = null;
+  }
+
+  // ウィンドウが開けなかったときの代用: 通知(許可済みの場合のみ)
+  function notifyDone() {
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const n = new Notification('⏰ 時間がきたよ！', {
+          body: `${durationText(total)}が経過しました`,
+          tag: 'focus-timer',
+          requireInteraction: true
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+      }
+    } catch (e) {}
+  }
+
   function finish() {
     clearInterval(timer);
+    clearTimeout(endTimer);
     remaining = 0;
     state = 'done';
     trackEl.classList.add('flash');
     startAlarm();
+    // 新しいウィンドウを開く。ポップアップがブロックされたときだけ、画面内ポップアップ+通知で代用
+    if (!openAlertWindow()) {
+      showPopup();
+      notifyDone();
+    }
     render();
   }
 
   mainBtn.addEventListener('click', () => {
     if (state === 'idle' || state === 'paused') start();
     else if (state === 'running') pause();
-    else { stopAlarm(); state = 'idle'; remaining = total; render(); }
+    else { stopAlarm(); hidePopup(); closeAlertWindow(); state = 'idle'; remaining = total; render(); }
   });
 
   function open() {
@@ -1068,7 +1160,10 @@ updateDisplay();
 
   function close() {
     clearInterval(timer);
+    clearTimeout(endTimer);
     stopAlarm();
+    hidePopup();
+    closeAlertWindow();
     state = 'idle';
     view.classList.remove('show', 'running');
     layout.inert = false;
@@ -1077,6 +1172,9 @@ updateDisplay();
 
   openBtn.addEventListener('click', open);
   backBtn.addEventListener('click', close);
+  // ポップアップを閉じたらアラーム音と点滅も止める
+  popupCloseBtn.addEventListener('click', () => { if (state === 'done') stopAlarm(); });
+  popupOverlay.addEventListener('click', (e) => { if (e.target === popupOverlay && state === 'done') stopAlarm(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && view.classList.contains('show')) close();
   });
@@ -1132,9 +1230,9 @@ updateDisplay();
     try { localStorage.setItem(CAT_KEY, b.dataset.cat); } catch (e) {}
   }));
 
-  // 10秒間タップ(や操作)がなかったらメニューボタンを隠す。画面をタップすると再表示。
+  // 5秒間タップ(や操作)がなかったらメニューボタンを隠す。画面をタップすると再表示。
   // メニューを開いている間は隠さない。
-  const HIDE_MS = 10000;
+  const HIDE_MS = 5000;
   let hideTimer = null;
 
   function showMenuBtn() {
