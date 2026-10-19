@@ -381,7 +381,7 @@
 
   .bar-time {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(54px, 7vw, 112px);
+    font-size: clamp(40px, 5.2vw, 84px);
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -712,7 +712,7 @@
 
   <!-- 追加: バータイマー画面 -->
   <div class="bar-view" id="barView" role="dialog" aria-label="バータイマー">
-    <button id="barBackBtn" type="button">← 戻る</button>
+    <button id="barBackBtn" type="button" aria-label="戻る">◀︎</button>
     <div class="bar-main">
       <div class="bar-head">
         <div class="bar-time" id="barTime">25:00</div>
@@ -781,10 +781,10 @@
     <button class="swatch" type="button" data-accent="orange" aria-pressed="true"><i style="background:#ff9f45"></i>オレンジ</button>
     <button class="swatch" type="button" data-accent="white" aria-pressed="false"><i style="background:#e0e4ea"></i>白</button>
     <p class="menu-title sub">キャラクター(バータイマー)</p>
-    <button class="swatch" type="button" data-char="cat" aria-pressed="true">猫</button>
+    <button class="swatch" type="button" data-char="cat" aria-pressed="false">猫</button>
     <button class="swatch" type="button" data-char="fish" aria-pressed="false">魚</button>
     <button class="swatch" type="button" data-char="owl" aria-pressed="false">フクロウ</button>
-    <button class="swatch" type="button" data-char="off" aria-pressed="false">なし</button>
+    <button class="swatch" type="button" data-char="off" aria-pressed="true">なし</button>
   </div>
 
 <script>
@@ -1360,7 +1360,7 @@ button{padding:.7rem 1.8rem;border:0;border-radius:999px;background:#3ddc97;colo
     document.dispatchEvent(new CustomEvent('charchange'));
   }
 
-  let savedChar = 'cat';
+  let savedChar = 'off'; // 初期状態はキャラクターなし
   try {
     const v = localStorage.getItem(CHAR_KEY);
     if (CHARS.includes(v)) savedChar = v;
