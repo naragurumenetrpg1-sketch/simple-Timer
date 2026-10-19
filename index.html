@@ -199,7 +199,7 @@
   }
 
   .preset {
-    padding: 0.25rem 0.8rem;
+    padding: 0.15rem 0.7rem;
     border-radius: 999px;
     border: 1px solid #232a3a;
     background: var(--bg-soft);
@@ -260,13 +260,13 @@
     color: #1a1206;
   }
 
-  #pauseBtn, #resetBtn, #barOpenBtn {
+  #barOpenBtn {
     background: transparent;
     color: var(--text-dim);
     border: 1px solid #232a3a;
   }
 
-  #pauseBtn:hover, #resetBtn:hover, #barOpenBtn:hover {
+  #barOpenBtn:hover {
     color: var(--text);
     border-color: #3a4256;
   }
@@ -284,7 +284,7 @@
       flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 1.8rem;
+      gap: 1.2rem;
       width: 100%;
     }
 
@@ -309,7 +309,7 @@
       margin-top: 0;
       gap: 0.6rem;
       order: 3;
-      width: 150px;
+      width: 120px;
     }
 
     .col-right .inputs {
@@ -321,16 +321,24 @@
       width: 100%;
     }
 
-    .col-presets button,
-    .col-right button {
-      padding: 0.4rem 1.2rem;
+    .col-presets button {
+      padding: 0.2rem 0.9rem;
       font-size: 0.85rem;
     }
 
+    .col-right button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+    }
+
+    .col-right .inputs {
+      gap: 0.5rem;
+    }
+
     .col-right input[type="number"] {
-      width: 60px;
-      padding: 0.45rem;
-      font-size: 1.1rem;
+      width: 48px;
+      padding: 0.4rem;
+      font-size: 1rem;
     }
 
     .col-right button {
@@ -665,10 +673,10 @@
   <div class="layout">
 
     <div class="col col-presets">
-      <button class="preset active" data-min="25">25分</button>
-      <button class="preset" data-min="5">5分</button>
-      <button class="preset" data-min="3">3分</button>
-      <button class="preset" data-min="1">1分</button>
+      <button class="preset active" data-min="25" aria-label="25分">25</button>
+      <button class="preset" data-min="5" aria-label="5分">5</button>
+      <button class="preset" data-min="3" aria-label="3分">3</button>
+      <button class="preset" data-min="1" aria-label="1分">1</button>
     </div>
 
     <div class="col col-center">
@@ -696,8 +704,6 @@
       </div>
       <div class="button-row">
         <button id="startBtn">開始</button>
-        <button id="pauseBtn">一時停止</button>
-        <button id="resetBtn">リセット</button>
       </div>
       <button id="barOpenBtn" type="button">バータイマー</button>
     </div>
@@ -794,8 +800,6 @@ const status = document.getElementById('status');
 const minutesInput = document.getElementById('minutes');
 const secondsInput = document.getElementById('seconds');
 const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const resetBtn = document.getElementById('resetBtn');
 const ring = document.getElementById('ringProgress');
 const presetBtns = document.querySelectorAll('.preset');
 
@@ -893,6 +897,7 @@ presetBtns.forEach(btn => {
 
     status.textContent = 'カウントダウン中';
     timerId = setInterval(tick, 1000);
+    syncStartBtn();
   });
 });
 
@@ -909,6 +914,7 @@ presetBtns.forEach(btn => {
       timerId = null;
     }
     isPaused = false;
+    syncStartBtn();
   });
 });
 
@@ -973,6 +979,7 @@ function playBeep() {
 function finish() {
   clearInterval(timerId);
   timerId = null;
+  syncStartBtn();
   status.textContent = '時間になりました';
   ring.classList.add('done');
   display.classList.add('pulse');
@@ -990,9 +997,23 @@ function tick() {
   if (remaining <= 0) finish();
 }
 
+// 開始ボタンは、状態に応じて「開始 → 一時停止 → 再開」と切り替わる
+function syncStartBtn() {
+  startBtn.textContent = timerId ? '一時停止' : isPaused ? '再開' : '開始';
+}
+
+function pauseTimer() {
+  if (!timerId) return;
+  clearInterval(timerId);
+  timerId = null;
+  isPaused = true;
+  status.textContent = '一時停止中';
+  syncStartBtn();
+}
+
 startBtn.addEventListener('click', () => {
   ensureAudioUnlocked();
-  if (timerId) return;
+  if (timerId) { pauseTimer(); return; } // 動いている間に押すと一時停止
 
   if (!isPaused) {
     const m = parseInt(minutesInput.value, 10) || 0;
@@ -1013,29 +1034,7 @@ startBtn.addEventListener('click', () => {
   status.textContent = 'カウントダウン中';
   updateDisplay();
   timerId = setInterval(tick, 1000);
-});
-
-pauseBtn.addEventListener('click', () => {
-  if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
-    isPaused = true;
-    status.textContent = '一時停止中';
-  }
-});
-
-resetBtn.addEventListener('click', () => {
-  clearInterval(timerId);
-  timerId = null;
-  isPaused = false;
-  remaining = 0;
-  totalSeconds = 0;
-  ring.classList.remove('done');
-  display.classList.remove('pulse');
-  hidePopup();
-  ring.style.strokeDashoffset = '0';
-  display.textContent = '00:00';
-  status.textContent = '';
+  syncStartBtn();
 });
 
 updateDisplay();
@@ -1278,7 +1277,7 @@ button{padding:.7rem 1.8rem;border:0;border-radius:999px;background:#3ddc97;colo
 
   function open() {
     ensureAudioUnlocked();
-    if (timerId) pauseBtn.click(); // リング側が動いていたら止めておく
+    pauseTimer(); // リング側が動いていたら止めておく
     const m = parseInt(minutesInput.value, 10) || 0;
     const s = parseInt(secondsInput.value, 10) || 0;
     total = ((m * 60 + s) || 25 * 60) * 1000;
