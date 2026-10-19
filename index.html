@@ -381,7 +381,7 @@
 
   .bar-time {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(40px, 5.2vw, 84px);
+    font-size: clamp(32px, 4.2vw, 68px);
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -622,6 +622,34 @@
   :root[data-char="owl"] .bar-owl { display: block; }
   :root[data-char="off"] .bar-lane { display: none; }
   /* --- 追加ここまで(メニュー) --- */
+
+  /* 一番小さいウィンドウでも、画面の上下の端に3pxの隙間を残す(メイン画面・横向きで低いとき) */
+  @media (orientation: landscape) and (max-height: 190px) {
+    body { padding: 3px; }
+    .layout { gap: 0.9rem; }
+    .timer-wrap {
+      width: min(320px, calc(100vh - 6px), 40vw);
+      height: min(320px, calc(100vh - 6px), 40vw);
+    }
+    .col-presets { gap: 0.3rem; }
+    .col-presets button { padding: 0.1rem 0.8rem; font-size: 0.75rem; }
+    .col-right { gap: 0.25rem; }
+    .col-right .inputs { margin-bottom: 0; }
+    .field { gap: 0.1rem; }
+    .field label { font-size: 0.6rem; }
+    .col-right input[type="number"] { padding: 0.2rem; font-size: 0.9rem; }
+    .col-right button { padding: 0.2rem 0.8rem; font-size: 0.75rem; }
+  }
+
+  /* バータイマー画面も、低いウィンドウでは上下に余裕を持たせて収める */
+  @media (max-height: 170px) {
+    .bar-main { padding: 8px 40px 8px; }
+    .bar-head { margin-bottom: 8px; }
+    .bar-time { font-size: clamp(22px, min(4.2vw, 20vh), 68px); }
+    .bar-track { height: clamp(26px, 20vh, 50px); }
+    .bar-lane { height: 30px; margin-top: 2px; }
+    .bar-cat, .bar-fish, .bar-owl { transform: scale(0.68); transform-origin: 50% 100%; }
+  }
 
   /* --- ここから追加: 終了時のポップアップ --- */
   .popup-overlay {
