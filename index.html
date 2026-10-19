@@ -551,15 +551,15 @@
   #menuBtn:focus-visible, .swatch:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
   #menuBtn svg { width: 18px; height: 18px; display: block; }
   /* 5秒間タップがないとメニューボタンを隠す(タップで再表示) */
-  #menuBtn { transition: opacity 0.4s ease; }
-  #menuBtn.faded {
+  #menuBtn, #barBackBtn { transition: opacity 0.4s ease; }
+  #menuBtn.faded, #barBackBtn.faded {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.4s ease, visibility 0s linear 0.4s;
   }
   @media (prefers-reduced-motion: reduce) {
-    #menuBtn, #menuBtn.faded { transition: none; }
+    #menuBtn, #menuBtn.faded, #barBackBtn, #barBackBtn.faded { transition: none; }
   }
 
   #menuPanel {
@@ -1406,11 +1406,14 @@ button{padding:.7rem 1.8rem;border:0;border-radius:999px;background:#3ddc97;colo
   const HIDE_MS = 5000;
   let hideTimer = null;
 
+  // メニューボタンと、バータイマー画面の戻るボタンをまとめて出し入れする
+  const fadeTargets = [menuBtn, document.getElementById('barBackBtn')];
+
   function showMenuBtn() {
-    menuBtn.classList.remove('faded');
+    fadeTargets.forEach(el => el.classList.remove('faded'));
     clearTimeout(hideTimer);
     if (panel.hidden) {
-      hideTimer = setTimeout(() => menuBtn.classList.add('faded'), HIDE_MS);
+      hideTimer = setTimeout(() => fadeTargets.forEach(el => el.classList.add('faded')), HIDE_MS);
     }
   }
 
